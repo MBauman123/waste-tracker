@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Food Waste Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f7f6f2;
+  --surface:#ffffff;
+  --border:#e2e0d8;
+  --border-strong:#c8c5bc;
+  --text:#1a1917;
+  --text-muted:#6b6860;
+  --text-hint:#a09e98;
+  --accent:#2d5a3d;
+  --accent-light:#e8f0ea;
+  --accent-text:#1a3d26;
+  --warn:#b84c00;
+  --warn-light:#fdf0e8;
+  --week-bg:#f0f4f1;
+  --week-text:#2d5a3d;
+  --radius:8px;
+  --radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+button{font-family:'DM Sans',sans-serif;cursor:pointer;}
+input,select{font-family:'DM Sans',sans-serif;}
+
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ── LOGIN ── */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.login-wrap{width:100%;max-width:400px;}
+.login-logo{font-size:13px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:2.5rem;}
+.login-logo span{color:var(--accent);}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;}
+.login-card h2{font-size:20px;font-weight:600;margin-bottom:6px;}
+.login-card p{font-size:13px;color:var(--text-muted);margin-bottom:1.5rem;line-height:1.6;}
+.store-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:1.25rem;}
+.store-btn{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+  padding:9px 8px;font-size:13px;font-weight:500;color:var(--text-muted);
+  transition:all 0.15s;text-align:center;
+}
+.store-btn:hover{border-color:var(--border-strong);color:var(--text);}
+.store-btn.selected{background:var(--accent-light);border-color:var(--accent);color:var(--accent-text);}
+.divider{display:flex;align-items:center;gap:10px;margin:1.25rem 0;color:var(--text-hint);font-size:12px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.pin-field{display:flex;gap:8px;}
+.pin-field input{
+  flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);
+  font-size:15px;background:var(--surface);color:var(--text);
+  transition:border-color 0.15s;
+}
+.pin-field input:focus{outline:none;border-color:var(--accent);}
+.pin-field button{
+  padding:9px 18px;background:var(--accent);color:#fff;border:none;
+  border-radius:var(--radius);font-size:14px;font-weight:500;
+  transition:opacity 0.15s;
+}
+.pin-field button:hover{opacity:0.88;}
+.login-err{font-size:13px;color:var(--warn);margin-top:8px;min-height:18px;}
+.login-hint{font-size:12px;color:var(--text-hint);margin-top:1rem;line-height:1.6;}
+
+/* ── APP ── */
+#app-screen{display:flex;flex-direction:column;min-height:100vh;}
+.app-header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:12px 20px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;
+}
+.app-header-left{display:flex;align-items:center;gap:12px;}
+.app-logo{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);}
+.app-logo b{color:var(--accent);}
+.app-store-name{font-size:15px;font-weight:600;color:var(--text);}
+.logout-btn{
+  font-size:13px;color:var(--text-muted);background:none;border:1px solid var(--border);
+  border-radius:var(--radius);padding:6px 12px;transition:all 0.15s;
+}
+.logout-btn:hover{border-color:var(--border-strong);color:var(--text);}
+
+/* ── TABS ── */
+.tabs-bar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 16px;display:flex;gap:0;overflow-x:auto;
+  scrollbar-width:none;
+}
+.tabs-bar::-webkit-scrollbar{display:none;}
+.tab{
+  padding:10px 14px;font-size:13px;font-weight:500;color:var(--text-muted);
+  border:none;background:none;white-space:nowrap;cursor:pointer;
+  border-bottom:2px solid transparent;transition:all 0.15s;
+}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── MAIN ── */
+.main-content{padding:16px 20px;flex:1;}
+
+/* ── CONTROLS ── */
+.controls-row{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+.controls-row select{
+  padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);
+  font-size:13px;background:var(--surface);color:var(--text);
+}
+.controls-row select:focus{outline:none;border-color:var(--accent);}
+.month-label{font-size:13px;font-weight:600;color:var(--text);margin-left:4px;}
+
+/* ── SUMMARY CARDS ── */
+.summary-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px;}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;}
+.metric-card.highlight{background:var(--accent-light);border-color:var(--accent);}
+.metric-card .mlabel{font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;}
+.metric-card .mval{font-size:22px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;}
+.metric-card.highlight .mval{color:var(--accent-text);}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);}
+table.waste{width:100%;border-collapse:collapse;font-size:12px;}
+table.waste th{
+  padding:7px 8px;color:var(--text-muted);font-weight:500;font-size:11px;
+  border-bottom:1px solid var(--border);white-space:nowrap;background:var(--bg);
+  text-align:center;
+}
+table.waste th:first-child,table.waste th:nth-child(2){text-align:left;}
+table.waste td{
+  padding:4px 6px;border-bottom:1px solid var(--border);
+  color:var(--text);vertical-align:middle;
+}
+table.waste tr:last-child td{border-bottom:none;}
+table.waste td.item-name{font-weight:500;font-size:12px;white-space:nowrap;padding-left:12px;min-width:130px;}
+table.waste td.item-name-input{padding-left:8px;min-width:130px;}
+table.waste td.item-name-input input[type=text]{
+  width:120px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;
+  font-size:12px;background:var(--bg);color:var(--text);
+  transition:border-color 0.12s;
+}
+table.waste td.item-name-input input[type=text]:focus{outline:none;border-color:var(--accent);background:var(--surface);}
+table.waste td.item-name-input input[type=text]::placeholder{color:var(--text-hint);}
+table.waste td.shift-badge{
+  font-size:10px;font-weight:600;letter-spacing:0.05em;
+  white-space:nowrap;color:var(--text-muted);
+}
+table.waste td input[type=number]{
+  width:38px;padding:3px 4px;border:1px solid var(--border);border-radius:4px;
+  font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);
+  text-align:center;transition:border-color 0.12s;
+}
+table.waste td input[type=number]:focus{outline:none;border-color:var(--accent);background:var(--surface);}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+table.waste td.week-total{
+  background:var(--week-bg);color:var(--week-text);font-weight:600;
+  font-family:'DM Mono',monospace;font-size:12px;text-align:center;
+}
+table.waste th.week-head{background:var(--week-bg);color:var(--week-text);font-weight:600;}
+table.waste td.month-total{
+  background:var(--accent-light);color:var(--accent-text);font-weight:600;
+  font-family:'DM Mono',monospace;font-size:12px;text-align:center;
+}
+table.waste th.month-head{background:var(--accent-light);color:var(--accent-text);font-weight:600;}
+.section-row td{
+  background:var(--bg);font-size:10px;font-weight:600;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--text-hint);padding:6px 12px 4px;
+}
+.custom-row td{background:#fffdf9;}
+
+/* ── SAVE ── */
+.save-row{
+  display:flex;gap:10px;align-items:center;
+  position:sticky;bottom:0;background:var(--bg);
+  padding:12px 0 14px;border-top:1px solid var(--border);margin-top:14px;z-index:5;
+}
+.save-btn{
+  padding:9px 22px;background:var(--accent);color:#fff;border:none;
+  border-radius:var(--radius);font-size:14px;font-weight:500;transition:opacity 0.15s;
+}
+.save-btn:hover{opacity:0.88;}
+.save-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.save-msg{font-size:13px;font-weight:500;}
+.save-msg.ok{color:var(--accent);}
+.save-msg.err{color:var(--warn);}
+
+/* ── BOSS SUMMARY ── */
+.boss-table{width:100%;border-collapse:collapse;font-size:13px;}
+.boss-table th{padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);font-weight:500;color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;}
+.boss-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+.boss-table tr:last-child td{border-bottom:none;}
+.boss-table tr.clickable:hover td{background:var(--bg);cursor:pointer;}
+.boss-table td.store-name{font-weight:600;}
+.boss-table td.num{font-family:'DM Mono',monospace;font-weight:500;}
+.boss-table td.grand{font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;}
+.boss-hint{font-size:12px;color:var(--text-hint);margin-top:10px;}
+
+/* ── PRICE LIST ── */
+.price-section{margin-top:20px;}
+.price-section h3{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.price-section p{font-size:12px;color:var(--text-muted);margin-bottom:12px;}
+.price-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:14px;}
+.price-item{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:8px 12px;gap:10px;
+}
+.price-item-name{font-size:12px;font-weight:500;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.price-item-shift{font-size:10px;color:var(--text-hint);margin-right:4px;}
+.price-input-wrap{display:flex;align-items:center;gap:4px;}
+.price-input-wrap span{font-size:12px;color:var(--text-muted);}
+.price-input{
+  width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;
+  font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);
+  text-align:right;transition:border-color 0.12s;
+}
+.price-input:focus{outline:none;border-color:var(--accent);background:var(--surface);}
+.cost-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px;}
+.cost-table th{padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);font-weight:500;color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;}
+.cost-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+.cost-table tr:last-child td{border-bottom:none;}
+.cost-table td.store-name{font-weight:600;}
+.cost-table td.cost-num{font-family:'DM Mono',monospace;font-weight:500;}
+.cost-table td.cost-grand{font-weight:700;color:var(--warn);font-family:'DM Mono',monospace;}
+.cost-save-btn{
+  padding:8px 18px;background:var(--surface);color:var(--accent);border:1px solid var(--accent);
+  border-radius:var(--radius);font-size:13px;font-weight:500;transition:all 0.15s;margin-bottom:16px;
+}
+.cost-save-btn:hover{background:var(--accent-light);}
+
+/* ── LOADING ── */
+.loading-msg{padding:3rem;text-align:center;color:var(--text-muted);font-size:14px;}
+
+/* ── MOBILE ── */
+@media(max-width:600px){
+  .main-content{padding:12px;}
+  .app-header{padding:10px 12px;}
+  .tabs-bar{padding:0 8px;}
+  .tab{padding:10px 10px;font-size:12px;}
+  .summary-row{grid-template-columns:1fr 1fr;}
+  .price-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="screen active">
+  <div class="login-wrap">
+    <div class="login-logo">Food Waste <span>Tracker</span></div>
+    <div class="login-card">
+      <h2>Sign in</h2>
+      <p>Select your store and enter the store PIN, or enter the manager PIN to access all stores.</p>
+      <div class="store-grid" id="store-grid"></div>
+      <div class="divider">or enter manager PIN directly</div>
+      <div class="pin-field">
+        <input type="password" id="pin-input" placeholder="PIN" maxlength="8" inputmode="numeric"/>
+        <button onclick="doLogin()">Enter</button>
+      </div>
+      <div class="login-err" id="login-err"></div>
+      <div class="login-hint">Store employees: tap your store, then enter the PIN. Managers: just enter the manager PIN.</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="screen">
+  <div class="app-header">
+    <div class="app-header-left">
+      <div class="app-logo">Food Waste <b>Tracker</b></div>
+      <div class="app-store-name" id="app-store-name"></div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">Sign out</button>
+  </div>
+  <div class="tabs-bar" id="tabs-bar"></div>
+  <div class="main-content" id="main-content">
+    <div class="loading-msg">Loading...</div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ── FIREBASE CONFIG ──────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyCwjbtSCHoVdRhXBkvWBkFjPp7-wr5RMrQ",
+  authDomain: "food-waste-tracker-51b17.firebaseapp.com",
+  projectId: "food-waste-tracker-51b17",
+  storageBucket: "food-waste-tracker-51b17.firebasestorage.app",
+  messagingSenderId: "695525410261",
+  appId: "1:695525410261:web:c5b86784e9500b05b4695c"
+};
+// ────────────────────────────────────────────────────────────────
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+// ── PINS ─────────────────────────────────────────────────────────
+const STORE_PINS = {
+  'Monroe':      '1111',
+  'Lake Stevens':'2222',
+  'Bothell':     '3333',
+  'Stadium':     '4444',
+  'College Way': '5555',
+  'Marysville':  '6666',
+  'Burlington':  '7777'
+};
+const BOSS_PIN = '9999';
+
+// ── DATA ─────────────────────────────────────────────────────────
+const STORES = ['Bothell','Burlington','College Way','Lake Stevens','Marysville','Monroe','Stadium'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const AM_ITEMS  = ['Sausage biscuit','Taquito','Tornados','Roller bites','DM burritos','JD sandwiches'];
+const PM_ITEMS  = ['Chicken sandwich','Tyson pub burger','Taquito','Tornados','Roller bites','Corn dog','Johnsonville hot dog','EM 5pc tender','Egg roll','Empanada'];
+const GEN_ITEMS = ['Bananas','Cookies'];
+
+// Fixed items per shift
+const FIXED_ITEMS = [
+  ...AM_ITEMS.map(n=>({name:n, shift:'AM', custom:false})),
+  ...PM_ITEMS.map(n=>({name:n, shift:'PM1', custom:false})),
+  ...PM_ITEMS.map(n=>({name:n, shift:'PM2', custom:false})),
+  ...GEN_ITEMS.map(n=>({name:n, shift:'General', custom:false}))
+];
+
+// 3 custom rows per shift
+const CUSTOM_SLOTS = 3;
+const SHIFTS = ['AM','PM1','PM2','General'];
+
+// All items including custom placeholders, interleaved by shift
+function buildFoodItems(d){
+  const items = [];
+  SHIFTS.forEach(shift=>{
+    // Add fixed items for this shift
+    FIXED_ITEMS.filter(fi=>fi.shift===shift).forEach(fi=>items.push(fi));
+    // Add custom rows for this shift
+    for(let i=0;i<CUSTOM_SLOTS;i++){
+      const nameKey = 'custom_name|'+shift+'|'+i;
+      items.push({name: d[nameKey]||'', shift, custom:true, customIdx:i, nameKey});
+    }
+  });
+  return items;
+}
+
+// ── STATE ─────────────────────────────────────────────────────────
+let isBoss = false;
+let currentStore = null;
+let activeTab = null;
+let currentMonth = new Date().getMonth();
+let currentYear  = new Date().getFullYear();
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function daysInMonth(m, y){ return new Date(y, m+1, 0).getDate(); }
+
+function weekBuckets(totalDays){
+  const weeks=[]; let d=1;
+  while(d<=totalDays){ const end=Math.min(d+6,totalDays); weeks.push({start:d,end}); d=end+1; }
+  return weeks;
+}
+
+function safeId(str){ return str.replace(/[^a-z0-9]/gi,'_'); }
+
+function docId(store,year,month){
+  return `${store.replace(/\s+/g,'_')}_${year}_${String(month+1).padStart(2,'0')}`;
+}
+
+function priceDocId(year,month){
+  return `prices_${year}_${String(month+1).padStart(2,'0')}`;
+}
+
+async function loadData(store,year,month){
+  try{
+    const ref = doc(db,'waste_data', docId(store,year,month));
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : {};
+  }catch(e){ console.error('Load error',e); return {}; }
+}
+
+async function saveFirestore(store,year,month,data){
+  const ref = doc(db,'waste_data', docId(store,year,month));
+  await setDoc(ref, data);
+}
+
+async function loadPrices(year,month){
+  try{
+    const ref = doc(db,'price_data', priceDocId(year,month));
+    const snap = await getDoc(ref);
+    return snap.exists() ? snap.data() : {};
+  }catch(e){ console.error('Price load error',e); return {}; }
+}
+
+async function savePrices(year,month,prices){
+  const ref = doc(db,'price_data', priceDocId(year,month));
+  await setDoc(ref, prices);
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────
+function buildLoginScreen(){
+  const grid = document.getElementById('store-grid');
+  grid.innerHTML = '';
+  STORES.forEach(s=>{
+    const b = document.createElement('button');
+    b.className='store-btn'; b.textContent=s; b.dataset.store=s;
+    b.onclick=()=>{ document.querySelectorAll('.store-btn').forEach(x=>x.classList.remove('selected')); b.classList.add('selected'); };
+    grid.appendChild(b);
+  });
+  document.getElementById('pin-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+}
+
+window.doLogin = function(){
+  const pin = document.getElementById('pin-input').value.trim();
+  const err = document.getElementById('login-err');
+  err.textContent='';
+  if(pin===BOSS_PIN){ isBoss=true; currentStore=null; showApp(); return; }
+  const sel = document.querySelector('.store-btn.selected');
+  if(!sel){ err.textContent='Please select your store first.'; return; }
+  const store = sel.dataset.store;
+  if(STORE_PINS[store]===pin){ isBoss=false; currentStore=store; showApp(); return; }
+  err.textContent='Incorrect PIN — please try again.';
+  document.getElementById('pin-input').value='';
+};
+
+window.doLogout = function(){
+  isBoss=false; currentStore=null; activeTab=null;
+  document.getElementById('pin-input').value='';
+  document.querySelectorAll('.store-btn').forEach(x=>x.classList.remove('selected'));
+  document.getElementById('login-err').textContent='';
+  document.getElementById('login-screen').classList.add('active');
+  document.getElementById('app-screen').classList.remove('active');
+};
+
+// ── APP SHELL ─────────────────────────────────────────────────────
+function showApp(){
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('app-screen').classList.add('active');
+  document.getElementById('app-store-name').textContent = isBoss ? 'Manager view' : currentStore;
+  buildTabs();
+}
+
+function buildTabs(){
+  const bar = document.getElementById('tabs-bar');
+  bar.innerHTML = '';
+  const stores = isBoss ? STORES : [currentStore];
+  stores.forEach((s)=>{
+    const t = document.createElement('button');
+    t.className='tab'; t.textContent=s; t.dataset.store=s;
+    t.onclick=()=>{ setActiveTab(s); renderStoreView(s); };
+    bar.appendChild(t);
+  });
+  if(isBoss){
+    const t = document.createElement('button');
+    t.className='tab'; t.textContent='All stores'; t.dataset.store='__boss__';
+    t.onclick=()=>{ setActiveTab('__boss__'); renderBossView(); };
+    bar.appendChild(t);
+  }
+  const firstStore = isBoss ? STORES[0] : currentStore;
+  setActiveTab(firstStore);
+  renderStoreView(firstStore);
+}
+
+function setActiveTab(id){
+  activeTab=id;
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.store===id);
+  });
+}
+
+// ── STORE VIEW ────────────────────────────────────────────────────
+async function renderStoreView(store){
+  const mc = document.getElementById('main-content');
+  mc.innerHTML='<div class="loading-msg">Loading data...</div>';
+
+  let selM=currentMonth, selY=currentYear;
+  const data = await loadData(store,selY,selM);
+
+  function render(d){
+    mc.innerHTML='';
+    const totalDays=daysInMonth(selM,selY);
+    const weeks=weekBuckets(totalDays);
+    const FOOD_ITEMS = buildFoodItems(d);
+
+    // Controls
+    const ctrl=document.createElement('div'); ctrl.className='controls-row';
+    const msel=document.createElement('select');
+    MONTHS.forEach((mn,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=mn; if(i===selM)o.selected=true; msel.appendChild(o); });
+    msel.onchange=async()=>{ selM=parseInt(msel.value); currentMonth=selM; const fresh=await loadData(store,selY,selM); render(fresh); };
+    const ysel=document.createElement('select');
+    [selY-1,selY,selY+1].forEach(y=>{ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===selY)o.selected=true; ysel.appendChild(o); });
+    ysel.onchange=async()=>{ selY=parseInt(ysel.value); currentYear=selY; const fresh=await loadData(store,selY,selM); render(fresh); };
+    ctrl.appendChild(Object.assign(document.createElement('span'),{textContent:'Month: ',className:'month-label'}));
+    ctrl.appendChild(msel);
+    ctrl.appendChild(Object.assign(document.createElement('span'),{textContent:'  Year: ',style:'margin-left:8px'}));
+    ctrl.appendChild(ysel);
+    mc.appendChild(ctrl);
+
+    // Summary cards
+    function calcTotals(d2){
+      const items2=buildFoodItems(d2);
+      const totals={};
+      items2.forEach(fi=>{
+        const k = fi.custom ? `custom|${fi.shift}|${fi.customIdx}` : fi.name+'|'+fi.shift;
+        totals[k]=0;
+        for(let day=1;day<=totalDays;day++) totals[k]+=(d2[k+':'+day]||0);
+      });
+      return totals;
+    }
+    const totals=calcTotals(d);
+    const grandTotal=Object.values(totals).reduce((a,b)=>a+b,0);
+    const byShift={AM:0,PM1:0,PM2:0,General:0};
+    buildFoodItems(d).forEach(fi=>{
+      const k = fi.custom ? `custom|${fi.shift}|${fi.customIdx}` : fi.name+'|'+fi.shift;
+      byShift[fi.shift]+=(totals[k]||0);
+    });
+
+    const sumRow=document.createElement('div'); sumRow.className='summary-row';
+    [{label:'Month total',val:grandTotal,hi:true},{label:'AM',val:byShift.AM},{label:'PM1',val:byShift.PM1},{label:'PM2',val:byShift.PM2},{label:'General',val:byShift.General}]
+      .forEach(c=>{ const card=document.createElement('div'); card.className='metric-card'+(c.hi?' highlight':''); card.innerHTML=`<div class="mlabel">${c.label}</div><div class="mval" id="mv-${c.label.replace(/\s/g,'')}">${c.val}</div>`; sumRow.appendChild(card); });
+    mc.appendChild(sumRow);
+
+    // Table
+    const wrap=document.createElement('div'); wrap.className='table-wrap';
+    const tbl=document.createElement('table'); tbl.className='waste';
+
+    // Header
+    const thead=document.createElement('thead');
+    const hrow=document.createElement('tr');
+    hrow.innerHTML='<th style="text-align:left;padding-left:12px">Item</th><th style="text-align:left">Shift</th>';
+    weeks.forEach((w,wi)=>{
+      for(let d2=w.start;d2<=w.end;d2++) hrow.innerHTML+=`<th>${d2}</th>`;
+      hrow.innerHTML+=`<th class="week-head">Wk${wi+1}</th>`;
+    });
+    hrow.innerHTML+='<th class="month-head">Total</th>';
+    thead.appendChild(hrow); tbl.appendChild(thead);
+
+    const tbody=document.createElement('tbody');
+    let lastShift='';
+
+    FOOD_ITEMS.forEach(fi=>{
+      if(fi.shift!==lastShift){
+        lastShift=fi.shift;
+        const sr=document.createElement('tr'); sr.className='section-row';
+        const label=fi.shift==='General'?'General items':fi.shift+' shift';
+        sr.innerHTML=`<td colspan="${2+totalDays+weeks.length+1}">${label}</td>`;
+        tbody.appendChild(sr);
+      }
+
+      // Key for data storage
+      const k = fi.custom ? `custom|${fi.shift}|${fi.customIdx}` : fi.name+'|'+fi.shift;
+      const row=document.createElement('tr');
+      if(fi.custom) row.className='custom-row';
+
+      // Item name cell
+      if(fi.custom){
+        let nameHtml=`<td class="item-name-input"><input type="text" placeholder="Custom item ${fi.customIdx+1}" value="${fi.name||''}" data-namekey="${fi.nameKey}"/></td>`;
+        row.innerHTML=nameHtml;
+      } else {
+        row.innerHTML=`<td class="item-name">${fi.name}</td>`;
+      }
+
+      // Shift badge
+      row.innerHTML+=`<td class="shift-badge">${fi.shift}</td>`;
+
+      // Day cells
+      let weekHtml='';
+      weeks.forEach(w=>{
+        let wt=0;
+        for(let day=w.start;day<=w.end;day++){
+          const val=d[k+':'+day]||0; wt+=val;
+          weekHtml+=`<td><input type="number" min="0" step="1" value="${val||''}" placeholder="" data-key="${k}:${day}"/></td>`;
+        }
+        weekHtml+=`<td class="week-total" id="wt-${safeId(k)}-${w.start}">${wt}</td>`;
+      });
+      weekHtml+=`<td class="month-total" id="mt-${safeId(k)}">${totals[k]||0}</td>`;
+      row.innerHTML+=weekHtml;
+
+      tbody.appendChild(row);
+    });
+
+    tbl.appendChild(tbody); wrap.appendChild(tbl); mc.appendChild(wrap);
+
+    // Custom name inputs — save name on change
+    wrap.addEventListener('change', e=>{
+      if(e.target.tagName==='INPUT' && e.target.dataset.namekey){
+        const nameKey = e.target.dataset.namekey;
+        d[nameKey] = e.target.value.trim();
+        // Update the placeholder for number inputs in same row if needed
+      }
+    });
+
+    // Live recalc on number inputs
+    wrap.addEventListener('input', e=>{
+      if(e.target.tagName!=='INPUT'||!e.target.dataset.key) return;
+      const dkey=e.target.dataset.key;
+      const val=Math.max(0,parseInt(e.target.value)||0);
+      d[dkey]=val;
+      const parts=dkey.split(':'); const day=parseInt(parts[parts.length-1]);
+      const itemKey=parts.slice(0,-1).join(':');
+      const sid=safeId(itemKey);
+      let mTotal=0; for(let day2=1;day2<=totalDays;day2++) mTotal+=(d[itemKey+':'+day2]||0);
+      const mtEl=document.getElementById('mt-'+sid); if(mtEl) mtEl.textContent=mTotal;
+      weeks.forEach(w=>{ if(day>=w.start&&day<=w.end){ let wt=0; for(let day2=w.start;day2<=w.end;day2++) wt+=(d[itemKey+':'+day2]||0); const wtEl=document.getElementById('wt-'+sid+'-'+w.start); if(wtEl) wtEl.textContent=wt; }});
+
+      // Recalc summaries
+      const items2=buildFoodItems(d);
+      let grand=0; const bs={AM:0,PM1:0,PM2:0,General:0};
+      items2.forEach(fi=>{
+        const k2 = fi.custom ? `custom|${fi.shift}|${fi.customIdx}` : fi.name+'|'+fi.shift;
+        let t=0; for(let day2=1;day2<=totalDays;day2++) t+=(d[k2+':'+day2]||0);
+        grand+=t; bs[fi.shift]+=t;
+      });
+      const mvs=document.querySelectorAll('.mval');
+      if(mvs[0]) mvs[0].textContent=grand;
+      if(mvs[1]) mvs[1].textContent=bs.AM;
+      if(mvs[2]) mvs[2].textContent=bs.PM1;
+      if(mvs[3]) mvs[3].textContent=bs.PM2;
+      if(mvs[4]) mvs[4].textContent=bs.General;
+    });
+
+    // Save
+    const saveRow=document.createElement('div'); saveRow.className='save-row';
+    const saveBtn=document.createElement('button'); saveBtn.className='save-btn'; saveBtn.textContent='Save entries';
+    const saveMsg=document.createElement('span'); saveMsg.className='save-msg';
+    saveBtn.onclick=async()=>{
+      saveBtn.disabled=true; saveBtn.textContent='Saving...'; saveMsg.textContent=''; saveMsg.className='save-msg';
+      try{ await saveFirestore(store,selY,selM,d); saveMsg.textContent='Saved!'; saveMsg.className='save-msg ok'; }
+      catch(e){ saveMsg.textContent='Error saving — check connection.'; saveMsg.className='save-msg err'; }
+      saveBtn.disabled=false; saveBtn.textContent='Save entries';
+      setTimeout(()=>saveMsg.textContent='', 3000);
+    };
+    saveRow.appendChild(saveBtn); saveRow.appendChild(saveMsg); mc.appendChild(saveRow);
+  }
+
+  render(data);
+}
+
+// ── BOSS VIEW ─────────────────────────────────────────────────────
+async function renderBossView(){
+  const mc=document.getElementById('main-content');
+  mc.innerHTML='<div class="loading-msg">Loading all stores...</div>';
+
+  let selM=currentMonth, selY=currentYear;
+
+  async function render(){
+    mc.innerHTML='<div class="loading-msg">Loading...</div>';
+    const totalDays=daysInMonth(selM,selY);
+    const [allData, prices] = await Promise.all([
+      Promise.all(STORES.map(s=>loadData(s,selY,selM))),
+      loadPrices(selY,selM)
+    ]);
+    mc.innerHTML='';
+
+    // Controls
+    const ctrl=document.createElement('div'); ctrl.className='controls-row';
+    const msel=document.createElement('select');
+    MONTHS.forEach((mn,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=mn; if(i===selM)o.selected=true; msel.appendChild(o); });
+    msel.onchange=()=>{ selM=parseInt(msel.value); currentMonth=selM; render(); };
+    const ysel=document.createElement('select');
+    [selY-1,selY,selY+1].forEach(y=>{ const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===selY)o.selected=true; ysel.appendChild(o); });
+    ysel.onchange=()=>{ selY=parseInt(ysel.value); currentYear=selY; render(); };
+    ctrl.appendChild(Object.assign(document.createElement('span'),{textContent:'Month: ',className:'month-label'}));
+    ctrl.appendChild(msel);
+    ctrl.appendChild(Object.assign(document.createElement('span'),{textContent:'  Year: ',style:'margin-left:8px'}));
+    ctrl.appendChild(ysel);
+    mc.appendChild(ctrl);
+
+    // Build store summaries
+    const storeSummaries=STORES.map((s,i)=>{
+      const d=allData[i];
+      const byShift={AM:0,PM1:0,PM2:0,General:0};
+      // Fixed items
+      FIXED_ITEMS.forEach(fi=>{
+        const k=fi.name+'|'+fi.shift;
+        for(let day=1;day<=totalDays;day++) byShift[fi.shift]+=(d[k+':'+day]||0);
+      });
+      // Custom rows
+      SHIFTS.forEach(shift=>{
+        for(let ci=0;ci<CUSTOM_SLOTS;ci++){
+          const k='custom|'+shift+'|'+ci;
+          for(let day=1;day<=totalDays;day++) byShift[shift]+=(d[k+':'+day]||0);
+        }
+      });
+      const total=Object.values(byShift).reduce((a,b)=>a+b,0);
+      return {store:s,byShift,total,data:d};
+    });
+    const grandAll=storeSummaries.reduce((a,s)=>a+s.total,0);
+
+    // Summary cards — ALL stores
+    const sumRow=document.createElement('div'); sumRow.className='summary-row';
+    const topCard=document.createElement('div'); topCard.className='metric-card highlight';
+    topCard.innerHTML=`<div class="mlabel">All stores total</div><div class="mval">${grandAll}</div>`;
+    sumRow.appendChild(topCard);
+    storeSummaries.forEach(s=>{ const card=document.createElement('div'); card.className='metric-card'; card.innerHTML=`<div class="mlabel">${s.store}</div><div class="mval">${s.total}</div>`; sumRow.appendChild(card); });
+    mc.appendChild(sumRow);
+
+    // Store totals table
+    const wrap=document.createElement('div'); wrap.className='table-wrap';
+    const tbl=document.createElement('table'); tbl.className='boss-table';
+    tbl.innerHTML='<thead><tr><th>Store</th><th>AM</th><th>PM1</th><th>PM2</th><th>General</th><th>Month total</th></tr></thead>';
+    const tb=document.createElement('tbody');
+    storeSummaries.forEach(s=>{
+      const tr=document.createElement('tr'); tr.className='clickable';
+      tr.innerHTML=`<td class="store-name">${s.store}</td><td class="num">${s.byShift.AM}</td><td class="num">${s.byShift.PM1}</td><td class="num">${s.byShift.PM2}</td><td class="num">${s.byShift.General}</td><td class="grand">${s.total}</td>`;
+      tr.onclick=()=>{ setActiveTab(s.store); renderStoreView(s.store); };
+      tb.appendChild(tr);
+    });
+    const totalRow=document.createElement('tr');
+    const amAll=storeSummaries.reduce((a,s)=>a+s.byShift.AM,0);
+    const pm1All=storeSummaries.reduce((a,s)=>a+s.byShift.PM1,0);
+    const pm2All=storeSummaries.reduce((a,s)=>a+s.byShift.PM2,0);
+    const genAll=storeSummaries.reduce((a,s)=>a+s.byShift.General,0);
+    totalRow.style.borderTop='2px solid var(--border-strong)';
+    totalRow.innerHTML=`<td class="store-name">All stores</td><td class="grand">${amAll}</td><td class="grand">${pm1All}</td><td class="grand">${pm2All}</td><td class="grand">${genAll}</td><td class="grand">${grandAll}</td>`;
+    tb.appendChild(totalRow);
+    tbl.appendChild(tb); wrap.appendChild(tbl); mc.appendChild(wrap);
+
+    const hint=document.createElement('p'); hint.className='boss-hint';
+    hint.textContent='Tap any store row to open its daily entry sheet.';
+    mc.appendChild(hint);
+
+    // ── PRICE LIST SECTION ────────────────────────────────────────
+    const priceSection=document.createElement('div'); priceSection.className='price-section';
+    priceSection.innerHTML=`
+      <h3>💲 Price list &amp; waste cost</h3>
+      <p>Enter the cost per item below. The table will calculate total waste cost by store for the month.</p>
+    `;
+
+    // Fixed items (deduplicated by name)
+    const pricableItems = FIXED_ITEMS.filter((fi,idx,arr)=>arr.findIndex(x=>x.name===fi.name)===idx);
+
+    const priceGrid=document.createElement('div'); priceGrid.className='price-grid';
+
+    // Fixed item price rows
+    pricableItems.forEach(fi=>{
+      const priceKey='price|'+fi.name;
+      const currentPrice=prices[priceKey]||'';
+      const item=document.createElement('div'); item.className='price-item';
+      item.innerHTML=`
+        <span class="price-item-name" title="${fi.name}">${fi.name}</span>
+        <div class="price-input-wrap">
+          <span>$</span>
+          <input type="number" class="price-input" min="0" step="0.01" placeholder="0.00"
+            value="${currentPrice}" data-pricekey="${priceKey}"/>
+        </div>
+      `;
+      priceGrid.appendChild(item);
+    });
+
+    // Custom item price rows — one per shift per slot
+    SHIFTS.forEach(shift=>{
+      for(let ci=0;ci<CUSTOM_SLOTS;ci++){
+        const priceKey='price|custom|'+shift+'|'+ci;
+        const currentPrice=prices[priceKey]||'';
+        // Try to show the name from any store's data
+        let customName='';
+        for(let si=0;si<allData.length;si++){
+          const n=allData[si]['custom_name|'+shift+'|'+ci];
+          if(n){ customName=n; break; }
+        }
+        const label=customName||('Custom '+shift+' item '+(ci+1));
+        const item=document.createElement('div'); item.className='price-item';
+        item.innerHTML=`
+          <span class="price-item-name" title="${label}" style="color:var(--text-hint);font-style:italic">${label}</span>
+          <div class="price-input-wrap">
+            <span>$</span>
+            <input type="number" class="price-input" min="0" step="0.01" placeholder="0.00"
+              value="${currentPrice}" data-pricekey="${priceKey}"/>
+          </div>
+        `;
+        priceGrid.appendChild(item);
+      }
+    });
+
+    priceSection.appendChild(priceGrid);
+
+    // Save prices button
+    const savePriceBtn=document.createElement('button'); savePriceBtn.className='cost-save-btn';
+    savePriceBtn.textContent='Save prices';
+    savePriceBtn.onclick=async()=>{
+      savePriceBtn.disabled=true; savePriceBtn.textContent='Saving...';
+      const newPrices={};
+      priceGrid.querySelectorAll('input[data-pricekey]').forEach(inp=>{
+        const v=parseFloat(inp.value)||0;
+        if(v>0) newPrices[inp.dataset.pricekey]=v;
+      });
+      try{
+        await savePrices(selY,selM,newPrices);
+        Object.assign(prices,newPrices);
+        recalcCostTable();
+        savePriceBtn.textContent='Saved ✓';
+        setTimeout(()=>{savePriceBtn.textContent='Save prices';savePriceBtn.disabled=false;},2000);
+      }catch(e){
+        savePriceBtn.textContent='Error — try again';
+        setTimeout(()=>{savePriceBtn.textContent='Save prices';savePriceBtn.disabled=false;},2000);
+      }
+    };
+    priceSection.appendChild(savePriceBtn);
+
+    // Cost totals table
+    const costWrap=document.createElement('div'); costWrap.className='table-wrap';
+    const costTbl=document.createElement('table'); costTbl.className='cost-table';
+    costTbl.innerHTML='<thead><tr><th>Store</th><th>Waste cost (month)</th></tr></thead>';
+    const costTb=document.createElement('tbody');
+
+    function calcStoreCost(storeData){
+      let total=0;
+      const items=buildFoodItems(storeData);
+      items.forEach(fi=>{
+        if(fi.custom) return; // skip custom rows for cost (no price set)
+        const priceKey=`price|${fi.name}`;
+        const price=prices[priceKey]||0;
+        if(!price) return;
+        const k=fi.name+'|'+fi.shift;
+        for(let day=1;day<=totalDays;day++) total+=((storeData[k+':'+day]||0)*price);
+      });
+      return total;
+    }
+
+    function recalcCostTable(){
+      costTb.innerHTML='';
+      let grandCost=0;
+      storeSummaries.forEach(s=>{
+        // Re-read prices from inputs (in case not saved yet)
+        const liveP={};
+        priceGrid.querySelectorAll('input[data-pricekey]').forEach(inp=>{
+          liveP[inp.dataset.pricekey]=parseFloat(inp.value)||0;
+        });
+        const mergedPrices=Object.assign({},prices,liveP);
+
+        let storeCost=0;
+        // Fixed items
+        FIXED_ITEMS.forEach(fi=>{
+          const priceKey='price|'+fi.name;
+          const price=mergedPrices[priceKey]||0;
+          if(!price) return;
+          const k=fi.name+'|'+fi.shift;
+          for(let day=1;day<=totalDays;day++) storeCost+=((s.data[k+':'+day]||0)*price);
+        });
+        // Custom items
+        SHIFTS.forEach(shift=>{
+          for(let ci=0;ci<CUSTOM_SLOTS;ci++){
+            const priceKey='price|custom|'+shift+'|'+ci;
+            const price=mergedPrices[priceKey]||0;
+            if(!price) return;
+            const k='custom|'+shift+'|'+ci;
+            for(let day=1;day<=totalDays;day++) storeCost+=((s.data[k+':'+day]||0)*price);
+          }
+        });
+        grandCost+=storeCost;
+
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td class="store-name">${s.store}</td><td class="cost-num">$${storeCost.toFixed(2)}</td>`;
+        costTb.appendChild(tr);
+      });
+      const grandTr=document.createElement('tr');
+      grandTr.style.borderTop='2px solid var(--border-strong)';
+      grandTr.innerHTML=`<td class="store-name">All stores</td><td class="cost-grand">$${grandCost.toFixed(2)}</td>`;
+      costTb.appendChild(grandTr);
+    }
+
+    recalcCostTable();
+
+    // Live recalc as prices are typed
+    priceGrid.addEventListener('input', ()=>recalcCostTable());
+
+    costTbl.appendChild(costTb); costWrap.appendChild(costTbl);
+    priceSection.appendChild(costWrap);
+    mc.appendChild(priceSection);
+  }
+
+  render();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+buildLoginScreen();
+</script>
+</body>
+</html>
